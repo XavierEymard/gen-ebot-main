@@ -1,6 +1,6 @@
 # Gen-e2 Project Starter Prompt
 
-We will start a new Gen-e2 projec : 
+We will start a new Gen-e2 projec : :
 
 1. create the following .MD files with the names in bold bellow
 2. add as status information filed at the end of the naming of each file created whith :
