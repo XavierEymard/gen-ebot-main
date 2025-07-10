@@ -33,6 +33,63 @@ You have to create the structure project tree as described bellow with the times
    - Are there any requirements for the API, like being RESTful, GraphQL, etc.?
    - Is there any need for specific languages or frameworks?
 
+## Automated Markdown Status Tracking
+
+Automatically generate a script `scripts/update_status.sh` that:
+  - Scans all `.md` files in the project (including subfolders, except `README.md` and `TODO.md`).
+  - Updates their filename with the status ([?] or [OK]) and the last commit date.
+Automatically install a Git `post-commit` hook in `.git/hooks/post-commit` that runs this script after each commit.
+Make these scripts executable (`chmod +x scripts/update_status.sh .git/hooks/post-commit`).
+
+**Example script to generate:**
+```bash
+#!/bin/bash
+# Updates status and date in the name of all .md files in the project
+
+set -e
+
+FILES=()
+while IFS= read -r -d '' f; do
+  fname=$(basename "$f")
+  case "$fname" in
+    "README.md"|"TODO.md") continue;;
+  esac
+  relpath="${f%.md}"
+  base=$(echo "$relpath" | sed -E 's/ ([\?OK]+)\[[0-9\-]+\]$//')
+  FILES+=("$base")
+done < <(find . -type f -name '*.md' -print0)
+
+get_status() {
+  local file="$1"
+  if grep -E -q "\?\s*$|TODO|À compléter|\[\s*\]" "$file"; then
+    echo "[?]"
+  else
+    echo "[OK]"
+  fi
+}
+
+for base in "${FILES[@]}"; do
+  file=$(ls "${base}"*.md 2>/dev/null | head -n1)
+  [ -z "$file" ] && continue
+  status=$(get_status "$file")
+  last_commit=$(git log -1 --format="%cd" --date=short -- "$file" 2>/dev/null)
+  [ -z "$last_commit" ] && last_commit="$(date +%Y-%m-%d)"
+  newname="${base} ${status}[${last_commit}].md"
+  if [[ "$file" != "$newname" ]]; then
+    mv "$file" "$newname"
+    echo "Renamed: $file -> $newname"
+  fi
+done
+```
+
+**Example post-commit hook to generate:**
+```bash
+#!/bin/sh
+bash scripts/update_status.sh
+```
+
+---
+
 ## Actions Based on Answers
 
 1. **Update Project Structure**:
