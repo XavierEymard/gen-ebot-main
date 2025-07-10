@@ -13,9 +13,9 @@ while IFS= read -r -d '' f; do
   case "$fname" in
     "README.md"|"TODO.md") continue;;
   esac
-  # Retire le statut et la date du nom pour retrouver le "base" (chemin relatif sans extension ni statut)
+  # Retire tous les statuts et dates à la fin pour retrouver le "base" (chemin relatif sans extension ni statut)
   relpath="${f%.md}"
-  base=$(echo "$relpath" | sed -E 's/ ([\?OK]+)\[[0-9\-]+\]$//')
+  base=$(echo "$relpath" | sed -E 's/(\s*[\?OK]+\[[0-9\-]+\])+\s*$//')
   FILES+=("$base")
 done < <(find . -type f -name '*.md' -print0)
 
@@ -32,15 +32,12 @@ get_status() {
 
 # Pour chaque fichier, met à jour le nom avec le statut et la date du dernier commit
 for base in "${FILES[@]}"; do
-  # Cherche le fichier correspondant (avec ou sans statut/date)
-  # Recherche dans tout le projet
+  # Cherche le fichier correspondant (avec ou sans plusieurs statuts/dates)
   file=$(ls "${base}"*.md 2>/dev/null | head -n1)
   [ -z "$file" ] && continue
   status=$(get_status "$file")
-  # Récupère la date du dernier commit (format YYYY-MM-DD)
   last_commit=$(git log -1 --format="%cd" --date=short -- "$file" 2>/dev/null)
   [ -z "$last_commit" ] && last_commit="$(date +%Y-%m-%d)"
-  # Nouveau nom
   newname="${base} ${status}[${last_commit}].md"
   # Si le nom diffère, renomme
   if [[ "$file" != "$newname" ]]; then
