@@ -15,7 +15,8 @@ while IFS= read -r -d '' f; do
   esac
   # Retire tous les statuts et dates à la fin pour retrouver le "base" (chemin relatif sans extension ni statut)
   relpath="${f%.md}"
-  base=$(echo "$relpath" | sed -E 's/(\s*[\?OK]+\[[0-9\-]+\])+\s*$//')
+  # Supprime tous les blocs [STATUT][DATE] à la fin du nom
+  base=$(echo "$relpath" | sed -E 's/(\s*\[\??OK\]\[[0-9\-]+\])+\s*$//g')
   FILES+=("$base")
 done < <(find . -type f -name '*.md' -print0)
 
