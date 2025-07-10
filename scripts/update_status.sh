@@ -5,21 +5,49 @@
 
 set -e
 
-# Recherche automatiquement tous les fichiers .md dans l'arborescence (hors README, TODO, etc. si besoin)
-FILES=()
-while IFS= read -r -d '' f; do
+
+# Nouvelle logique robuste :
+# 1. Pour chaque base, ne garder qu'un seul fichier (le plus récent), supprimer les doublons
+# 2. Renommer le fichier gardé avec un seul bloc [STATUT][DATE]
+
+find . -type f -name '*.md' | while read -r f; do
   fname=$(basename "$f")
-  # Exclure certains fichiers si besoin
   case "$fname" in
     "README.md"|"TODO.md") continue;;
   esac
-  # Retire tous les statuts et dates à la fin pour retrouver le "base" (chemin relatif sans extension ni statut)
+  # Base = chemin sans statuts/dates
   relpath="${f%.md}"
-  # Supprime tous les blocs [STATUT][DATE] à la fin du nom (même multiples)
-  # Ne garde que la partie avant le premier bloc [STATUT][DATE]
   base=$(echo "$relpath" | sed -E 's/(\s*\[[\?OK]+\]\[[0-9\-]+\])+.*$//')
-  FILES+=("$base")
-done < <(find . -type f -name '*.md' -print0)
+  echo "$base|$f"
+done | sort > .all_md_files.tmp
+
+cut -d'|' -f1 .all_md_files.tmp | sort | uniq | while read -r base; do
+  files=( $(grep "^$base|" .all_md_files.tmp | cut -d'|' -f2) )
+  # Garde le plus récent (modification)
+  keep=$(ls -t "${files[@]}" | head -n1)
+  # Supprime les autres
+  for f in "${files[@]}"; do
+    if [[ "$f" != "$keep" ]]; then
+      rm "$f"
+      echo "Supprimé: $f"
+    fi
+  done
+  # Statut
+  status="[?]"
+  if grep -E -q "\?\s*$|TODO|À compléter|\[\s*\]" "$keep"; then
+    status="[?]"
+  else
+    status="[OK]"
+  fi
+  last_commit=$(git log -1 --format="%cd" --date=short -- "$keep" 2>/dev/null)
+  [ -z "$last_commit" ] && last_commit="$(date +%Y-%m-%d)"
+  newname="${base} ${status}[${last_commit}].md"
+  if [[ "$keep" != "$newname" ]]; then
+    mv "$keep" "$newname"
+    echo "Renommé: $keep -> $newname"
+  fi
+done
+rm .all_md_files.tmp
 
 # Fonction pour déterminer le statut d'un fichier
 get_status() {
