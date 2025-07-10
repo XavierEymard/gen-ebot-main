@@ -4,3 +4,4 @@
 - Are there any specific requirements for the project, like compliance, security, etc.?
 We want to integrate Microsoft 360 SSO
 We want to be localized in france
+We want to use AWS cloud
