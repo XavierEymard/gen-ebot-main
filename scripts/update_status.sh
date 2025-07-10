@@ -16,11 +16,8 @@ while IFS= read -r -d '' f; do
   # Retire tous les statuts et dates à la fin pour retrouver le "base" (chemin relatif sans extension ni statut)
   relpath="${f%.md}"
   # Supprime tous les blocs [STATUT][DATE] à la fin du nom (même multiples)
-  base=$(echo "$relpath" | sed -E 's/(\s*\[[\?\sA-Z]+\]\[[0-9\-]+\])+\s*$//')
-  # Si le nom du fichier contient encore plusieurs blocs [STATUT][DATE], ne garder que la partie avant le premier bloc
-  if [[ "$base" =~ (.*?)(\s*\[[\?\sA-Z]+\]\[[0-9\-]+\])+\s*$ ]]; then
-    base=$(echo "$base" | sed -E 's/(\s*\[[\?\sA-Z]+\]\[[0-9\-]+\])+\s*$//')
-  fi
+  # Ne garde que la partie avant le premier bloc [STATUT][DATE]
+  base=$(echo "$relpath" | sed -E 's/(\s*\[[\?OK]+\]\[[0-9\-]+\])+.*$//')
   FILES+=("$base")
 done < <(find . -type f -name '*.md' -print0)
 
